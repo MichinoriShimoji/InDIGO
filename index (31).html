@@ -1,0 +1,2612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InDIGO - Interactive Dictionary Generation Optimizer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; 
+            background: linear-gradient(135deg, #0d1b4c 0%, #1a237e 50%, #283593 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #0d1b4c 0%, #1a237e 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        header h1 { 
+            font-size: 5rem; 
+            font-weight: 800; 
+            margin-bottom: 12px; 
+            letter-spacing: 0.05em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        header p { opacity: 0.85; font-size: 16px; letter-spacing: 0.1em; }
+        header .credits { 
+            margin-top: 15px; 
+            font-size: 13px; 
+            opacity: 0.7; 
+        }
+        header a { 
+            color: #90caf9; 
+            text-decoration: none; 
+        }
+        header a:hover { 
+            text-decoration: underline; 
+        }
+        
+        .section {
+            padding: 25px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .section h2 {
+            font-size: 16px;
+            color: #1a1a2e;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section h2 .step {
+            background: #3949ab;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #3949ab;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f8f9ff;
+        }
+        .drop-zone:hover { background: #eef0ff; border-color: #5a6fd6; }
+        .drop-zone.dragover { background: #e0e5ff; border-color: #4a5fc6; }
+        .drop-zone-icon { font-size: 48px; margin-bottom: 10px; }
+        .drop-zone-text { color: #3949ab; font-size: 14px; }
+        .drop-zone-text small { color: #6c757d; }
+        
+        #fileInput { display: none; }
+        
+        .loaded-files {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .file-tag {
+            padding: 6px 12px;
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #155724;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .file-tag .count {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        .file-tag .remove {
+            cursor: pointer;
+            color: #dc3545;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        .file-tag.csv-file {
+            background: #cce5ff;
+            border-color: #0d6efd;
+            color: #004085;
+        }
+        .file-tag.csv-file .count {
+            background: #0d6efd;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: #495057;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .input-group input:focus { outline: none; border-color: #3949ab; }
+        .input-group small {
+            display: block;
+            margin-top: 6px;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .stats-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .stats-box h3 {
+            font-size: 13px;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3949ab;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #6c757d;
+        }
+        
+        .btn-generate {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3949ab 0%, #1a237e 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .output-section {
+            display: none;
+            padding: 25px 30px;
+            background: #d4edda;
+        }
+        .output-section.show { display: block; }
+        .output-section h2 {
+            color: #155724;
+            margin-bottom: 15px;
+        }
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-download:hover { background: #218838; }
+        
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .debug-box {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .debug-box h3 {
+            font-size: 13px;
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+        .debug-box pre {
+            font-size: 11px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .tier-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tier-grid .input-group {
+            margin-bottom: 0;
+        }
+        .tier-grid input {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .btn-reload {
+            padding: 10px 20px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-reload:hover {
+            background: #138496;
+        }
+        
+        .audio-url-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .audio-url-item label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .audio-url-item textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .audio-url-item textarea:focus {
+            outline: none;
+            border-color: #3949ab;
+        }
+        .audio-url-item textarea::placeholder {
+            color: #adb5bd;
+            font-size: 11px;
+        }
+        .audio-url-item .url-count {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 6px;
+        }
+        .audio-url-item .url-count.has-urls {
+            color: #28a745;
+        }
+        .audio-url-item .zenodo-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .audio-url-item .zenodo-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .audio-url-item .zenodo-input:focus {
+            outline: none;
+            border-color: #3949ab;
+        }
+        .audio-url-item .zenodo-btn {
+            padding: 8px 16px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .audio-url-item .zenodo-btn:hover {
+            background: #138496;
+        }
+        .audio-url-item .zenodo-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .audio-url-item .zenodo-status {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        .audio-url-item .zenodo-status.error {
+            color: #dc3545;
+        }
+        .audio-url-item .zenodo-status.success {
+            color: #28a745;
+        }
+        
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .tier-config-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3949ab;
+        }
+        .tier-config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .tier-config-header strong {
+            font-size: 14px;
+            color: #1a1a2e;
+        }
+        .tier-config-count {
+            font-size: 12px;
+            color: #28a745;
+            font-weight: bold;
+        }
+        .tier-config-count.zero {
+            color: #dc3545;
+        }
+        .tier-info-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .tier-info-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            color: #495057;
+        }
+        .tier-info-more {
+            font-size: 10px;
+            padding: 2px 6px;
+            color: #6c757d;
+        }
+        .tier-config-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+        .tier-select {
+            display: flex;
+            flex-direction: column;
+        }
+        .tier-select label {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 3px;
+        }
+        .tier-select select {
+            padding: 6px 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+        }
+        .tier-select select:focus {
+            outline: none;
+            border-color: #3949ab;
+        }
+        
+        @media (max-width: 600px) {
+            .tier-config-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        footer {
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>InDIGO</h1>
+            <p>Interactive Dictionary Generation Optimizer</p>
+            <p class="credits">© Michinori Shimoji (<a href="https://mshimoji.com" target="_blank">mshimoji.com</a>) | DOI: <a href="https://doi.org/10.5281/zenodo.17769807" target="_blank">10.5281/zenodo.17769807</a></p>
+        </header>
+        
+        <!-- Step 1: ファイルアップロード -->
+        <div class="section">
+            <h2><span class="step">1</span> TXT/CSVファイルをアップロード</h2>
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">📁</div>
+                <div class="drop-zone-text">
+                    ファイルをドラッグ＆ドロップ<br>
+                    <small>またはクリックして選択（.txt, .csv 複数可）</small>
+                </div>
+            </div>
+            <input type="file" id="fileInput" accept=".txt,.TXT,.csv,.CSV" multiple>
+            <div class="loaded-files" id="loadedFiles"></div>
+            
+            <div class="stats-box" id="statsBox" style="display:none;">
+                <h3>📊 読み込み結果</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statFiles">0</div>
+                        <div class="stat-label">ファイル</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statSentences">0</div>
+                        <div class="stat-label">文</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statEntries">0</div>
+                        <div class="stat-label">見出し語</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Step 1.5: 層設定（TXT用） -->
+        <div class="section" id="txtLayerSection" style="display:none;">
+            <h2><span class="step">1.5</span> 層構成を設定</h2>
+            <p style="font-size:13px; color:#6c757d; margin-bottom:15px;">各行がどの層に対応するか設定してください</p>
+            <div id="txtLayerConfigList"></div>
+            <button class="btn-reload" id="btnReloadTxt">🔄 層設定を反映して再読み込み</button>
+        </div>
+        
+        <!-- Step 2: 音声URLリスト（オプション） -->
+        <div class="section" id="audioSection" style="display:none;">
+            <h2><span class="step">2</span> 音声URLリスト（オプション）</h2>
+            <p style="font-size:13px; color:#6c757d; margin-bottom:15px;">
+                ZenodoレコードURLを入力して「取得」をクリックすると、音声ファイルのURLを自動取得します。<br>
+                または、URLリストを直接貼り付けることもできます。文番号順に対応させてください。
+            </p>
+            <div id="audioUrlInputs"></div>
+        </div>
+        
+        <!-- Step 3: 辞書情報 -->
+        <div class="section">
+            <h2><span class="step">3</span> 辞書の情報（任意）</h2>
+            <div class="input-group">
+                <label>言語名</label>
+                <input type="text" id="langNameInput" placeholder="例：宮古語" value="">
+                <small>モード切り替えボタンやファイル名に使用されます</small>
+            </div>
+            <div class="input-group">
+                <label>辞書タイトル</label>
+                <input type="text" id="titleInput" placeholder="例：宮古語辞書" value="">
+            </div>
+            <div class="input-group">
+                <label>サブタイトル</label>
+                <input type="text" id="subtitleInput" placeholder="例：Miyako Language Dictionary" value="">
+            </div>
+        </div>
+        
+        <!-- Step 3: 生成 -->
+        <div class="section">
+            <h2><span class="step">4</span> HTMLを生成</h2>
+            <button class="btn-generate" id="btnGenerate" disabled>
+                📄 辞書HTMLを生成
+            </button>
+            <div class="info-box">
+                💡 生成されたHTMLファイルをGitHub Pagesにアップロードするだけで辞書が公開できます。
+            </div>
+        </div>
+        
+        <!-- Output -->
+        <div class="output-section" id="outputSection">
+            <h2>✅ 生成完了！</h2>
+            <a class="btn-download" id="downloadLink" href="#" download="dictionary.html">
+                ⬇️ HTMLをダウンロード
+            </a>
+        </div>
+        
+        <footer>
+            InDIGO - Interactive Dictionary Generation Optimizer | TXT/CSVファイルから検索可能な辞書を作成
+        </footer>
+    </div>
+
+<script>
+// ============================================================================
+// Dictionary Builder
+// ============================================================================
+
+class DictionaryBuilder {
+    constructor(maxExamples = 3) {
+        this.maxExamples = maxExamples;
+        this.tokenFreq = new Map();
+        this.allomorphToHead = new Map();
+        this.entries = new Map();
+        this.examplesByKey = new Map();
+    }
+    
+    build(corpusItems) {
+        this.tokenFreq.clear();
+        this.allomorphToHead.clear();
+        this.entries.clear();
+        this.examplesByKey.clear();
+        
+        console.log('DictionaryBuilder: Processing', corpusItems.length, 'items');
+        
+        this._countTokens(corpusItems);
+        console.log('DictionaryBuilder: Found', this.tokenFreq.size, 'unique tokens');
+        
+        this._findAllomorphs();
+        this._createEntries();
+        console.log('DictionaryBuilder: Created', this.entries.size, 'entries');
+        
+        this._collectExamples(corpusItems);
+        this._assignMorphIndices();
+        
+        return this._toList();
+    }
+    
+    // 音韻的に類似した子音ペア（置換コスト0として扱う）
+    _areSimilarPhonemes(c1, c2) {
+        if (c1 === c2) return true;
+        const pairs = [
+            ['k', 'f'],  // k ↔ f
+            ['t', 'c'],  // t ↔ c
+            ['g', 'v'],  // g ↔ v
+            ['p', 'h'],  // p ↔ h （追加：宮古語でよくある交替）
+            ['o', 'u'],  // o ↔ u （母音交替）
+            ['i', 'ɨ'],  // i ↔ ɨ （母音交替）
+        ];
+        for (const [a, b] of pairs) {
+            if ((c1 === a && c2 === b) || (c1 === b && c2 === a)) return true;
+        }
+        return false;
+    }
+    
+    // 音韻類似性を考慮した編集距離を計算
+    _levenshteinDistance(s1, s2, usePhonemeRules = false) {
+        const m = s1.length, n = s2.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                let cost;
+                if (s1[i - 1] === s2[j - 1]) {
+                    cost = 0;
+                } else if (usePhonemeRules && this._areSimilarPhonemes(s1[i - 1], s2[j - 1])) {
+                    cost = 0;  // 音韻的に類似した置換はコスト0
+                } else {
+                    cost = 1;
+                }
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,      // 削除
+                    dp[i][j - 1] + 1,      // 挿入
+                    dp[i - 1][j - 1] + cost // 置換
+                );
+            }
+        }
+        return dp[m][n];
+    }
+    
+    // 2つの形態素が音形的に類似しているかを判定
+    _areSimilar(morph1, morph2) {
+        // 境界記号を除去して比較
+        const strip = (s) => s.replace(/^[=~+\-.]/, '').toLowerCase();
+        const m1 = strip(morph1);
+        const m2 = strip(morph2);
+        
+        // 同一なら当然類似
+        if (m1 === m2) return true;
+        
+        // 短い方と長い方を特定
+        const shorter = m1.length <= m2.length ? m1 : m2;
+        const longer = m1.length > m2.length ? m1 : m2;
+        
+        // 1文字の形態素は基本的に異形態にしない
+        if (shorter.length === 1) {
+            // 長さが同じで音韻的に類似する場合のみ許可
+            if (longer.length === 1) {
+                return this._areSimilarPhonemes(m1, m2);
+            }
+            return false;
+        }
+        
+        // 2文字の形態素は厳しく判定
+        if (shorter.length === 2) {
+            // 長さの差が2以上なら不可
+            if (longer.length - shorter.length >= 2) return false;
+            // 音韻類似を考慮した編集距離が1以内
+            return this._levenshteinDistance(m1, m2, true) <= 1;
+        }
+        
+        // 3文字以上の形態素
+        // 音韻類似を考慮した編集距離を計算
+        const distance = this._levenshteinDistance(m1, m2, true);
+        
+        // 許容する編集距離：短い方の長さの50%以下（最低1、最大3）
+        const maxDistance = Math.max(1, Math.min(3, Math.floor(shorter.length * 0.5)));
+        
+        if (distance <= maxDistance) return true;
+        
+        // 追加チェック：先頭が共通（少なくとも2文字以上）
+        const minCommon = Math.min(2, shorter.length);
+        if (m1.slice(0, minCommon) === m2.slice(0, minCommon)) {
+            // 先頭が共通で、末尾の違いが少ない場合（接尾辞の違い）
+            if (longer.length - shorter.length <= 2) return true;
+        }
+        
+        // 一方が他方の部分文字列（3文字以上で、先頭から一致）
+        if (shorter.length >= 3 && longer.startsWith(shorter)) return true;
+        
+        return false;
+    }
+    
+    _countTokens(items) {
+        for (const item of items) {
+            const morphs = item.morphs || [];
+            const glosses = item.gloss || [];
+            const posList = item.pos || [];
+            
+            for (let i = 0; i < morphs.length; i++) {
+                let m = morphs[i];
+                const g = i < glosses.length ? glosses[i] : '';
+                const p = i < posList.length ? posList[i] : '';  // posが空でもOK
+                
+                // morphが空でglossがある場合は、glossを見出し語として使用
+                // 例: text層に境界がなく、gloss層が「子.DIM.NOM」の場合
+                // morphs: ['っふぁがまぬ', '', ''], glosses: ['子', 'DIM', 'NOM']
+                // → DIM、NOMもエントリとして登録
+                if (!m && g) {
+                    m = g;
+                }
+                
+                if (m && m !== 'XXX' && g) {  // morphとglossがあれば登録
+                    // 見出し語から句読点を除去
+                    m = m.replace(/[.,]+$/, '').replace(/[.,]+/g, '');
+                    if (!m) continue;  // 句読点除去後に空になった場合はスキップ
+                    const key = `${m}|${p}|${g}`;
+                    this.tokenFreq.set(key, (this.tokenFreq.get(key) || 0) + 1);
+                }
+            }
+        }
+    }
+    
+    _findAllomorphs() {
+        const groups = new Map();
+        for (const [key, count] of this.tokenFreq) {
+            const [morph, pos, gloss] = key.split('|');
+            const gk = `${pos}|${gloss}`;
+            if (!groups.has(gk)) groups.set(gk, []);
+            groups.get(gk).push({ morph, count });
+        }
+        for (const [gk, morphs] of groups) {
+            if (morphs.length > 1) {
+                // 頻度順にソート
+                morphs.sort((a, b) => b.count - a.count);
+                const [pos, gloss] = gk.split('|');
+                
+                // 音形類似性に基づいてクラスタリング
+                // 最も頻度の高いものを代表形の候補として、類似するもののみを異形態とする
+                const processed = new Set();
+                
+                for (let i = 0; i < morphs.length; i++) {
+                    if (processed.has(i)) continue;
+                    
+                    const head = morphs[i].morph;
+                    processed.add(i);
+                    
+                    // このheadに類似する形態素を探す
+                    for (let j = i + 1; j < morphs.length; j++) {
+                        if (processed.has(j)) continue;
+                        
+                        if (this._areSimilar(head, morphs[j].morph)) {
+                            this.allomorphToHead.set(`${pos}|${gloss}|${morphs[j].morph}`, head);
+                            processed.add(j);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    _createEntries() {
+        for (const key of this.tokenFreq.keys()) {
+            const [morph, pos, gloss] = key.split('|');
+            const alloKey = `${pos}|${gloss}|${morph}`;
+            if (this.allomorphToHead.has(alloKey)) {
+                const head = this.allomorphToHead.get(alloKey);
+                const entryKey = `${head}|${pos}|${gloss}`;
+                if (!this.entries.has(entryKey)) this.entries.set(entryKey, { morph: head, pos, gloss, allomorphs: [] });
+                this.entries.get(entryKey).allomorphs.push(morph);
+            } else {
+                if (!this.entries.has(key)) this.entries.set(key, { morph, pos, gloss, allomorphs: [] });
+            }
+        }
+    }
+    
+    _collectExamples(items) {
+        for (const item of items) {
+            const { text, trans, morphs = [], gloss: glosses = [], pos: posList = [], start_time, end_time, _audio_file, _speaker } = item;
+            if (!text || !morphs.length) continue;
+            const seen = new Set();
+            for (let i = 0; i < morphs.length; i++) {
+                let m = morphs[i];
+                const g = i < glosses.length ? glosses[i] : '';
+                const p = i < posList.length ? posList[i] : '';
+                
+                // morphが空でglossがある場合は、glossを使用
+                if (!m && g) {
+                    m = g;
+                }
+                
+                if (!m || m === 'XXX' || !g) continue;
+                
+                // 見出し語から句読点を除去
+                m = m.replace(/[.,]+$/, '').replace(/[.,]+/g, '');
+                if (!m) continue;
+                
+                const alloKey = `${p}|${g}|${m}`;
+                const head = this.allomorphToHead.get(alloKey) || m;
+                const entryKey = `${head}|${p}|${g}`;
+                if (!this.entries.has(entryKey) || seen.has(entryKey)) continue;
+                seen.add(entryKey);
+                if (!this.examplesByKey.has(entryKey)) this.examplesByKey.set(entryKey, []);
+                this.examplesByKey.get(entryKey).push({
+                    text, trans, morphs, glosses, pos_list: posList,
+                    target_index: i, audio_file: _audio_file, start_time, end_time, speaker: _speaker
+                });
+            }
+        }
+        for (const [key, entry] of this.entries) {
+            const all = this.examplesByKey.get(key) || [];
+            entry.examples = [...all.filter(e => e.trans), ...all.filter(e => !e.trans)].slice(0, this.maxExamples);
+        }
+    }
+    
+    _assignMorphIndices() {
+        const counts = new Map();
+        for (const e of this.entries.values()) counts.set(e.morph, (counts.get(e.morph) || 0) + 1);
+        const indices = new Map();
+        for (const key of [...this.entries.keys()].sort()) {
+            const entry = this.entries.get(key);
+            if (counts.get(entry.morph) > 1) {
+                const idx = (indices.get(entry.morph) || 0) + 1;
+                indices.set(entry.morph, idx);
+                entry.morph_index = idx;
+            } else {
+                entry.morph_index = null;
+            }
+        }
+    }
+    
+    _toList() {
+        const result = [...this.entries.values()];
+        result.forEach(e => e.allomorphs = [...new Set(e.allomorphs)].sort());
+        result.sort((a, b) => a.morph.toLowerCase().localeCompare(b.morph.toLowerCase()) || (a.pos || '').localeCompare(b.pos || ''));
+        return result;
+    }
+}
+
+// ============================================================================
+// Glossed Text Parser (テキストファイル形式)
+// ============================================================================
+
+// TXTファイルの行数を検出
+function detectTxtLineCount(content) {
+    const lines = content.split(/\r?\n/);
+    let currentLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        // (数字) または (数字) [話者ID] の形式を検出
+        const idMatch = line.match(/^\((\d+)\)(?:\s*\[([^\]]+)\])?$/);
+        if (idMatch) {
+            if (currentLines.length > 0) {
+                return currentLines.length;
+            }
+            currentLines = [];
+        } else if (line) {
+            currentLines.push(line);
+        }
+    }
+    return currentLines.length || 3;
+}
+
+// デフォルトの層設定を返す
+function getDefaultLayerConfig(lineCount) {
+    const layerOptions = ['text0', 'text', 'gloss', 'pos', 'trans'];
+    let layers;
+    
+    switch (lineCount) {
+        case 2:
+            layers = ['text', 'gloss'];
+            break;
+        case 3:
+            layers = ['text', 'gloss', 'trans'];
+            break;
+        case 4:
+            layers = ['text', 'gloss', 'pos', 'trans'];
+            break;
+        case 5:
+            layers = ['text0', 'text', 'gloss', 'pos', 'trans'];
+            break;
+        default:
+            layers = ['text', 'gloss', 'trans'];
+    }
+    
+    return { layers, lineCount };
+}
+
+function parseGlossedText(content, layerConfig) {
+    const lines = content.split(/\r?\n/);
+    const result = [];
+    
+    let currentId = null;
+    let currentSpeaker = null;
+    let currentLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // 文番号の検出: (1), (2), または (1) [話者ID] など
+        const idMatch = line.match(/^\((\d+)\)(?:\s*\[([^\]]+)\])?$/);
+        if (idMatch) {
+            // 前の文を処理
+            if (currentId !== null && currentLines.length > 0) {
+                const parsed = parseGlossedBlock(currentId, currentLines, layerConfig, currentSpeaker);
+                if (parsed) result.push(parsed);
+            }
+            currentId = parseInt(idMatch[1]);
+            currentSpeaker = idMatch[2] || null;  // 話者ID（存在すれば）
+            currentLines = [];
+        } else if (line && currentId !== null) {
+            currentLines.push(line);
+        }
+    }
+    
+    // 最後の文を処理
+    if (currentId !== null && currentLines.length > 0) {
+        const parsed = parseGlossedBlock(currentId, currentLines, layerConfig, currentSpeaker);
+        if (parsed) result.push(parsed);
+    }
+    
+    return result;
+}
+
+function parseGlossedBlock(id, lines, layerConfig, speaker) {
+    // layerConfig.layers = ['text0', 'text', 'gloss', 'pos', 'trans'] など
+    const layers = layerConfig?.layers || ['text', 'gloss', 'trans'];
+    
+    if (lines.length < 2) return null;
+    
+    // 各層のデータを取得
+    const layerData = {};
+    for (let i = 0; i < layers.length && i < lines.length; i++) {
+        layerData[layers[i]] = lines[i];
+    }
+    
+    // text0がある場合はそれを原文として使用、なければtextを使用
+    const text0Line = layerData.text0 || '';
+    const textLine = layerData.text || '';
+    const glossLine = layerData.gloss || '';
+    const posLine = layerData.pos || '';
+    const transLine = layerData.trans || '';
+    
+    // 表示用テキストはtext0があればそれを、なければtextを使用
+    const displayText = text0Line || textLine;
+    
+    // スペースで単語に分割（形態素解析はtext層から）
+    const textWords = textLine.split(/\s+/).filter(w => w);
+    const glossWords = glossLine.split(/\s+/).filter(w => w);
+    const posWords = posLine ? posLine.split(/\s+/).filter(w => w) : [];
+    
+    // 全ての形態素、グロス、品詞を収集
+    const allMorphs = [];
+    const allGlosses = [];
+    const allPos = [];
+    
+    // text層の単語数を基準に処理
+    for (let i = 0; i < textWords.length; i++) {
+        const textWord = textWords[i] || '';
+        const glossWord = glossWords[i] || '';
+        const posWord = posWords[i] || '';
+        
+        // text層から形態素を分割（境界記号を保持）
+        const morphParts = splitMorphemesWithBoundary(textWord);
+        // gloss層は境界記号付きで分割（判定用）
+        const glossPartsWithBoundary = splitMorphemesWithBoundary(glossWord);
+        // gloss/pos層は境界記号を除去して分割
+        const glossParts = splitMorphemesNoBoundary(glossWord);
+        const posParts = posWord ? splitMorphemesNoBoundary(posWord) : [];
+        
+        // text層の形態素数とgloss層の形態素数の大きい方を基準にする
+        const maxParts = Math.max(morphParts.length, glossParts.length, posParts.length);
+        
+        for (let j = 0; j < maxParts; j++) {
+            // text層の形態素が足りない場合は、単語全体を使用（最初の形態素のみ）
+            let morph = morphParts[j] || (j === 0 ? textWord : '');
+            const gloss = glossParts[j] || '';
+            const glossWithBoundary = glossPartsWithBoundary[j] || '';
+            const pos = posParts[j] || '';
+            
+            // グロスが日本語または小文字英語で始まる場合は、形態素から境界記号を除去
+            // 例: -nam（-波）→ nam、-wave → wave
+            // 大文字で始まる場合は文法グロス（例：-DIM）なので記号を保持
+            if (morph && glossWithBoundary) {
+                const glossContent = glossWithBoundary.replace(/^[=\-~+.]/, '');
+                if (glossContent && isLexicalGloss(glossContent)) {
+                    // 複合語の一部なので記号を除去
+                    morph = morph.replace(/^[=\-~+.]/, '');
+                }
+            }
+            
+            // morphが空でもglossやposがあれば追加
+            if (morph || gloss || pos) {
+                allMorphs.push(morph);
+                allGlosses.push(gloss);
+                if (posLine) {
+                    allPos.push(pos);
+                }
+            }
+        }
+    }
+    
+    const result = {
+        text: displayText,  // text0があればtext0、なければtext
+        morphs: allMorphs,
+        gloss: allGlosses,
+        trans: transLine,
+        _sentence_id: id,
+        _speaker: speaker || null  // 話者ID
+    };
+    
+    // pos層がある場合のみ追加
+    if (allPos.length > 0) {
+        result.pos = allPos;
+    }
+    
+    return result;
+}
+
+// グロスが語彙的（日本語または小文字英語）かどうかを判定
+// 語彙的グロス: 波、water、大きい など
+// 文法グロス: DIM, NOM, FOC など（大文字）
+function isLexicalGloss(gloss) {
+    if (!gloss) return false;
+    const firstChar = gloss.charAt(0);
+    // 日本語（ひらがな、カタカナ、漢字）
+    if (/[ぁ-んァ-ン一-龯]/.test(firstChar)) return true;
+    // 小文字英語
+    if (/[a-z]/.test(firstChar)) return true;
+    return false;
+}
+
+// 形態素を境界記号付きで分割
+// 境界記号: = - ~ + .
+// 例: bookuugoo-gama=u=du → ['bookuugoo', '-gama', '=u', '=du']
+// 例: 昔.HS → ['昔', '.HS']
+function splitMorphemesWithBoundary(word) {
+    if (!word) return [];
+    
+    const result = [];
+    let current = '';
+    let currentBoundary = '';
+    
+    for (let i = 0; i < word.length; i++) {
+        const char = word[i];
+        // ピリオドは境界記号として扱わない（複合グロス NEG.SEQ のため）
+        if (char === '=' || char === '-' || char === '~' || char === '+') {
+            if (current) {
+                result.push(currentBoundary + current);
+            }
+            currentBoundary = char;
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    
+    if (current) {
+        result.push(currentBoundary + current);
+    }
+    
+    return result;
+}
+
+// 形態素を境界記号なしで分割（gloss/pos用）
+// 例: 昔=FOC → ['昔', 'FOC']
+// 例: NEG.SEQ → ['NEG.SEQ'] （ピリオドは分割しない、複合グロスのため）
+function splitMorphemesNoBoundary(word) {
+    if (!word) return [];
+    // ピリオドは境界記号として扱わない（複合グロス NEG.SEQ のため）
+    return word.split(/[=\-~+]/).filter(p => p);
+}
+
+// 検索用：境界記号を除去した形態素を返す
+function stripBoundary(morph) {
+    if (!morph) return '';
+    return morph.replace(/^[=~+\-.]/, '');
+}
+
+// ============================================================================
+// CSV Parser
+// ============================================================================
+
+function parseCSV(content) {
+    // BOMを除去
+    content = content.replace(/^\uFEFF/, '');
+    
+    const lines = content.split(/\r?\n/);
+    if (lines.length < 2) throw new Error('CSVが空です');
+    
+    // ヘッダー行を探す（morphとglossが含まれる行）
+    let headerLineIdx = -1;
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+        const testHeaders = parseCSVLine(lines[i]);
+        const testMap = {};
+        testHeaders.forEach((h, idx) => testMap[h.toLowerCase().trim()] = idx);
+        if (testMap['morph'] !== undefined && testMap['gloss'] !== undefined) {
+            headerLineIdx = i;
+            break;
+        }
+    }
+    
+    if (headerLineIdx === -1) {
+        throw new Error('CSVには morph と gloss カラムが必要です');
+    }
+    
+    // ヘッダー解析
+    const headers = parseCSVLine(lines[headerLineIdx]);
+    const headerMap = {};
+    headers.forEach((h, i) => headerMap[h.toLowerCase().trim()] = i);
+    
+    const morphIdx = headerMap['morph'];
+    const glossIdx = headerMap['gloss'];
+    const posIdx = headerMap['pos'];
+    const phonemeIdx = headerMap['phoneme'];
+    const ipaIdx = headerMap['ipa'];
+    const allomorphsIdx = headerMap['allomorphs'];
+    const morphIndexIdx = headerMap['morph_index'];
+    const exTextIdx = headerMap['ex_text'];
+    const exTransIdx = headerMap['ex_trans'];
+    const exMorphsIdx = headerMap['ex_morphs'];
+    const exGlossesIdx = headerMap['ex_glosses'];
+    const exAudioIdx = headerMap['ex_audio'];
+    const exStartIdx = headerMap['ex_start'];
+    const exEndIdx = headerMap['ex_end'];
+    const exTargetIdx = headerMap['ex_target'];
+    const exSpeakerIdx = headerMap['ex_speaker'];
+    
+    // エントリをマップで管理（同じmorph+pos+glossは統合）
+    const entryMap = new Map();
+    let exampleCount = 0;
+    
+    for (let i = headerLineIdx + 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const cols = parseCSVLine(line);
+        let morph = cols[morphIdx]?.trim() || '';
+        const gloss = cols[glossIdx]?.trim() || '';
+        if (!morph || !gloss) continue;
+        
+        // 見出し語から句読点を除去
+        morph = morph.replace(/[.,]+$/, '').replace(/[.,]+/g, '');
+        if (!morph) continue;
+        
+        const pos = posIdx !== undefined ? (cols[posIdx]?.trim() || '') : '';
+        const key = `${morph}|${pos}|${gloss}`;
+        
+        if (!entryMap.has(key)) {
+            const allomorphsStr = allomorphsIdx !== undefined ? (cols[allomorphsIdx]?.trim() || '') : '';
+            const allomorphs = allomorphsStr ? allomorphsStr.split('|').map(s => s.trim().replace(/[.,]+$/, '').replace(/[.,]+/g, '')).filter(s => s) : [];
+            const morphIndex = morphIndexIdx !== undefined ? (cols[morphIndexIdx]?.trim() || null) : null;
+            const phoneme = phonemeIdx !== undefined ? (cols[phonemeIdx]?.trim() || '') : '';
+            let ipa = ipaIdx !== undefined ? (cols[ipaIdx]?.trim() || '') : '';
+            // 角括弧があれば除去
+            ipa = ipa.replace(/^\[/, '').replace(/\]$/, '');
+            
+            entryMap.set(key, {
+                morph,
+                phoneme,
+                ipa,
+                pos,
+                gloss,
+                allomorphs,
+                morph_index: morphIndex ? parseInt(morphIndex) : null,
+                examples: []
+            });
+        }
+        
+        // 用例があれば追加
+        const exText = exTextIdx !== undefined ? (cols[exTextIdx]?.trim() || '') : '';
+        if (exText) {
+            const entry = entryMap.get(key);
+            const exMorphsStr = exMorphsIdx !== undefined ? (cols[exMorphsIdx]?.trim() || '') : '';
+            const exGlossesStr = exGlossesIdx !== undefined ? (cols[exGlossesIdx]?.trim() || '') : '';
+            const morphs = exMorphsStr ? exMorphsStr.split('|') : [];
+            const glosses = exGlossesStr ? exGlossesStr.split('|') : [];
+            
+            // target_indexの決定：指定があればそれを使用、なければ自動検出
+            let targetIndex = undefined;
+            const rawTarget = exTargetIdx !== undefined ? (cols[exTargetIdx]?.trim() || '') : '';
+            // シングルクォートを除去してパース（Excelエスケープ対策）
+            const cleanTarget = rawTarget.replace(/^'/, '');
+            if (cleanTarget && !isNaN(parseInt(cleanTarget))) {
+                targetIndex = parseInt(cleanTarget);
+            } else if (morphs.length > 0) {
+                // 見出し語または異形態と一致する形態素を自動検出（境界記号・句読点を除去して比較）
+                const stripForCompare = (s) => s ? s.replace(/^[=~+\-.]/, '').replace(/[.,]+/g, '') : '';
+                const morphBase = stripForCompare(morph).toLowerCase();
+                
+                // 異形態リストを取得（既にentryに追加済みの場合はそれを使用）
+                const allomorphsStr = allomorphsIdx !== undefined ? (cols[allomorphsIdx]?.trim() || '') : '';
+                const allomorphs = allomorphsStr ? allomorphsStr.split('|').map(s => stripForCompare(s.trim()).toLowerCase()) : [];
+                
+                for (let j = 0; j < morphs.length; j++) {
+                    const morphToken = stripForCompare(morphs[j]).toLowerCase();
+                    // 見出し語と一致、または異形態のいずれかと一致
+                    if (morphToken === morphBase || allomorphs.includes(morphToken)) {
+                        targetIndex = j;
+                        break;
+                    }
+                }
+            }
+            
+            entry.examples.push({
+                text: exText,
+                trans: exTransIdx !== undefined ? (cols[exTransIdx]?.trim() || '') : '',
+                morphs,
+                glosses,
+                audio_file: exAudioIdx !== undefined ? (cols[exAudioIdx]?.trim() || undefined) : undefined,
+                start_time: exStartIdx !== undefined && cols[exStartIdx] ? parseFloat(cols[exStartIdx]) : undefined,
+                end_time: exEndIdx !== undefined && cols[exEndIdx] ? parseFloat(cols[exEndIdx]) : undefined,
+                target_index: targetIndex,
+                speaker: exSpeakerIdx !== undefined ? (cols[exSpeakerIdx]?.trim() || undefined) : undefined
+            });
+            exampleCount++;
+        }
+    }
+    
+    return {
+        entries: [...entryMap.values()],
+        exampleCount
+    };
+}
+
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (inQuotes) {
+            if (char === '"') {
+                if (i + 1 < line.length && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                current += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ',') {
+                result.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+    }
+    result.push(current);
+    
+    // Excelで付けられた先頭のシングルクォートを除去
+    return result.map(cell => cell.replace(/^'(?=[=+\-@])/, ''));
+}
+
+// ============================================================================
+// State
+// ============================================================================
+
+let corpusData = [];
+let loadedFiles = [];
+let dictionaryData = [];
+let rawTXTData = [];  // 生のTXTデータを保持（再パース用）
+let audioUrls = {};   // TXTファイル名 → URLリスト配列
+let txtLayerConfigs = {}; // TXTファイル名 → { layers: ['text', 'gloss', 'trans'], lineCount: 3 }
+let csvDictionaryData = [];  // CSVから読み込んだ辞書エントリ
+
+function updateTxtLayerConfigList() {
+    const container = document.getElementById('txtLayerConfigList');
+    const txtFiles = rawTXTData;
+    
+    if (txtFiles.length === 0) {
+        document.getElementById('txtLayerSection').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('txtLayerSection').style.display = 'block';
+    
+    const layerOptions = ['text0', 'text', 'gloss', 'pos', 'trans'];
+    
+    container.innerHTML = txtFiles.map(({filename, content}) => {
+        const config = txtLayerConfigs[filename] || getDefaultLayerConfig(detectTxtLineCount(content));
+        txtLayerConfigs[filename] = config;
+        
+        // サンプル行を取得（最初の文の各行）
+        const sampleLines = getSampleLines(content, config.lineCount);
+        
+        // 各行の設定UI
+        const rowsHtml = [];
+        for (let i = 0; i < config.lineCount; i++) {
+            const currentLayer = config.layers[i] || 'text';
+            const sampleText = sampleLines[i] || '';
+            const truncatedSample = sampleText.length > 50 ? sampleText.substring(0, 50) + '...' : sampleText;
+            
+            const optionsHtml = layerOptions.map(opt => 
+                `<option value="${opt}"${opt === currentLayer ? ' selected' : ''}>${opt}</option>`
+            ).join('');
+            
+            rowsHtml.push(`
+                <div class="txt-layer-row">
+                    <span class="txt-layer-num">${i + 1}行目:</span>
+                    <select class="txt-layer-select" data-file="${filename}" data-row="${i}">
+                        ${optionsHtml}
+                    </select>
+                    <span class="txt-layer-sample">${escapeHtml(truncatedSample)}</span>
+                </div>
+            `);
+        }
+        
+        return `
+            <div class="txt-layer-config-item">
+                <div class="txt-layer-header">
+                    <strong>${filename}</strong>
+                    <span class="tier-config-count" id="txt-count-${filename.replace(/[^a-zA-Z0-9]/g, '_')}">0文</span>
+                </div>
+                <div class="txt-layer-rows">${rowsHtml.join('')}</div>
+            </div>
+        `;
+    }).join('');
+    
+    // スタイル追加
+    if (!document.getElementById('txtLayerStyles')) {
+        const style = document.createElement('style');
+        style.id = 'txtLayerStyles';
+        style.textContent = `
+            .txt-layer-config-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+            .txt-layer-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+            .txt-layer-rows { display: flex; flex-direction: column; gap: 8px; }
+            .txt-layer-row { display: flex; align-items: center; gap: 10px; }
+            .txt-layer-num { font-weight: bold; color: #3949ab; min-width: 60px; }
+            .txt-layer-select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; }
+            .txt-layer-sample { font-size: 12px; color: #666; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // イベントリスナー追加
+    container.querySelectorAll('.txt-layer-select').forEach(select => {
+        select.onchange = (e) => {
+            const file = e.target.dataset.file;
+            const row = parseInt(e.target.dataset.row);
+            if (!txtLayerConfigs[file]) txtLayerConfigs[file] = getDefaultLayerConfig(4);
+            txtLayerConfigs[file].layers[row] = e.target.value;
+        };
+    });
+}
+
+function getSampleLines(content, lineCount) {
+    const lines = content.split(/\r?\n/);
+    const result = [];
+    let inBlock = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        const idMatch = line.match(/^\((\d+)\)$/);
+        if (idMatch) {
+            if (result.length > 0) break; // 最初のブロックのみ
+            inBlock = true;
+        } else if (line && inBlock) {
+            result.push(line);
+            if (result.length >= lineCount) break;
+        }
+    }
+    return result;
+}
+
+async function fetchZenodoFiles(recordUrl, fileName) {
+    // ZenodoのレコードURLからレコードIDを抽出
+    // 例: https://zenodo.org/records/16675643 → 16675643
+    const match = recordUrl.match(/zenodo\.org\/records\/(\d+)/);
+    if (!match) {
+        throw new Error('無効なZenodo URLです。例: https://zenodo.org/records/12345678');
+    }
+    
+    const recordId = match[1];
+    const apiUrl = `https://zenodo.org/api/records/${recordId}`;
+    
+    // CORSプロキシを試行（複数のプロキシを順番に試す）
+    const proxyUrls = [
+        apiUrl, // まず直接アクセスを試みる
+        `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`,
+        `https://thingproxy.freeboard.io/fetch/${apiUrl}`,
+        `https://cors.bridged.cc/${apiUrl}`
+    ];
+    
+    let data = null;
+    let lastError = null;
+    
+    for (const url of proxyUrls) {
+        try {
+            console.log('Trying:', url);
+            const response = await fetch(url);
+            if (response.ok) {
+                let jsonData = await response.json();
+                // alloriginsはcontentsフィールドにデータをラップする
+                if (jsonData.contents) {
+                    jsonData = JSON.parse(jsonData.contents);
+                }
+                data = jsonData;
+                console.log('Success with:', url);
+                break;
+            }
+        } catch (e) {
+            lastError = e;
+            console.log(`Proxy failed: ${url}`, e.message);
+        }
+    }
+    
+    if (!data) {
+        throw new Error('Zenodo APIへの接続に失敗しました。CORSプロキシがすべて利用不可です。');
+    }
+    
+    if (!data.files || data.files.length === 0) {
+        throw new Error('このレコードにはファイルがありません');
+    }
+    
+    // 音声ファイルをフィルタリング
+    const audioExtensions = ['.wav', '.mp3', '.ogg', '.flac', '.m4a'];
+    const audioFiles = data.files.filter(f => {
+        const ext = f.key.toLowerCase().substring(f.key.lastIndexOf('.'));
+        return audioExtensions.includes(ext);
+    });
+    
+    if (audioFiles.length === 0) {
+        throw new Error('音声ファイルが見つかりません（.wav, .mp3など）');
+    }
+    
+    // 個別音声ファイルのみを抽出（001_, 002_などで始まるもの）
+    // text_やfullなどの全体音声ファイルは除外
+    const individualFiles = audioFiles.filter(f => {
+        const filename = f.key;
+        // 数字3桁_で始まるファイルは個別音声
+        if (/^\d{3}_/.test(filename)) {
+            return true;
+        }
+        // text_で始まる、または "full" を含むファイルは除外
+        if (/^text_/i.test(filename) || /full/i.test(filename)) {
+            return false;
+        }
+        // 番号が含まれないファイルも除外
+        if (!/\d{3}/.test(filename)) {
+            return false;
+        }
+        return true;
+    });
+    
+    // ファイル名でソート（001_, 002_などの番号順）
+    individualFiles.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
+    
+    // ダウンロードURLを生成
+    const urls = individualFiles.map(f => f.links.self + '?download=1');
+    
+    return urls;
+}
+
+function updateAudioUrlList() {
+    const container = document.getElementById('audioUrlInputs');
+    const txtFiles = loadedFiles.filter(f => f.type === 'txt');
+    
+    if (txtFiles.length === 0) {
+        document.getElementById('audioSection').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('audioSection').style.display = 'block';
+    
+    container.innerHTML = txtFiles.map(f => {
+        const urls = audioUrls[f.name] || [];
+        const urlText = urls.join('\n');
+        const urlCount = urls.length;
+        
+        return `
+            <div class="audio-url-item" data-file="${f.name}">
+                <label><strong>${f.name}</strong> (${f.count}文)</label>
+                <div class="zenodo-input-row">
+                    <input type="text" 
+                           class="zenodo-input" 
+                           data-file="${f.name}"
+                           placeholder="ZenodoレコードURL（例: https://zenodo.org/records/16675643）">
+                    <button class="zenodo-btn" data-file="${f.name}">📥 取得</button>
+                </div>
+                <div class="zenodo-status" data-file="${f.name}"></div>
+                <textarea 
+                    class="audio-url-textarea" 
+                    data-file="${f.name}"
+                    placeholder="または直接URLリストを貼り付け..."
+                >${urlText}</textarea>
+                <div class="url-count ${urlCount > 0 ? 'has-urls' : ''}" data-file="${f.name}">
+                    ${urlCount > 0 ? `✅ ${urlCount}件のURL` : '📋 ZenodoレコードURLを入力するか、URLリストを貼り付けてください'}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // イベントリスナー: テキストエリアの変更を監視
+    container.querySelectorAll('.audio-url-textarea').forEach(textarea => {
+        textarea.oninput = (e) => {
+            const fileName = e.target.dataset.file;
+            const text = e.target.value;
+            const urls = text.trim().split('\n').map(u => u.trim()).filter(u => u && u.startsWith('http'));
+            
+            audioUrls[fileName] = urls;
+            
+            const countEl = container.querySelector(`.url-count[data-file="${fileName}"]`);
+            if (countEl) {
+                countEl.textContent = urls.length > 0 ? `✅ ${urls.length}件のURL` : '📋 ZenodoレコードURLを入力するか、URLリストを貼り付けてください';
+                countEl.className = 'url-count' + (urls.length > 0 ? ' has-urls' : '');
+            }
+        };
+    });
+    
+    // イベントリスナー: Zenodo取得ボタン
+    container.querySelectorAll('.zenodo-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+            const fileName = e.target.dataset.file;
+            const input = container.querySelector(`.zenodo-input[data-file="${fileName}"]`);
+            const textarea = container.querySelector(`.audio-url-textarea[data-file="${fileName}"]`);
+            const status = container.querySelector(`.zenodo-status[data-file="${fileName}"]`);
+            const countEl = container.querySelector(`.url-count[data-file="${fileName}"]`);
+            
+            const recordUrl = input.value.trim();
+            if (!recordUrl) {
+                status.textContent = '❌ ZenodoレコードURLを入力してください';
+                status.className = 'zenodo-status error';
+                return;
+            }
+            
+            // ボタンを無効化
+            btn.disabled = true;
+            btn.textContent = '⏳ 取得中...';
+            status.textContent = 'Zenodo APIに接続中...';
+            status.className = 'zenodo-status';
+            
+            try {
+                const urls = await fetchZenodoFiles(recordUrl, fileName);
+                
+                // テキストエリアに設定
+                textarea.value = urls.join('\n');
+                audioUrls[fileName] = urls;
+                
+                status.textContent = `✅ ${urls.length}件の音声ファイルを取得しました`;
+                status.className = 'zenodo-status success';
+                
+                countEl.textContent = `✅ ${urls.length}件のURL`;
+                countEl.className = 'url-count has-urls';
+                
+            } catch (err) {
+                status.textContent = '❌ ' + err.message;
+                status.className = 'zenodo-status error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📥 取得';
+            }
+        };
+    });
+}
+
+// ============================================================================
+// File Handling
+// ============================================================================
+
+function detectFileType(data) {
+    if (Array.isArray(data) && data.length > 0) {
+        const first = data[0];
+        if (first.morph && first.gloss && first.examples) return 'dictionary';
+        if (first.text && (first.morphs || first.gloss)) return 'corpus';
+    }
+    return 'unknown';
+}
+
+function handleFile(file, content) {
+    const filename = file.name;
+    
+    if (filename.toLowerCase().endsWith('.csv')) {
+        try {
+            const result = parseCSV(content);
+            if (result.entries.length > 0) {
+                // CSVからdictionaryDataに直接追加（ソースファイル名を記録）
+                for (const entry of result.entries) {
+                    entry._source_file = filename;
+                }
+                csvDictionaryData.push(...result.entries);
+                loadedFiles.push({ name: filename, count: result.entries.length, baseName: filename.replace(/\.csv$/i, ''), type: 'csv' });
+                console.log(`Loaded CSV: ${filename} (${result.entries.length} entries, ${result.exampleCount} examples)`);
+            } else {
+                alert(`CSVにエントリが見つかりません: ${filename}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`CSVパースエラー: ${filename}\n${err.message}`);
+        }
+    } else if (filename.toLowerCase().endsWith('.txt')) {
+        // テキストファイル（グロス付きテキスト形式）のパース
+        try {
+            // 生データを保存
+            rawTXTData.push({ filename, content });
+            
+            // 行数を検出してデフォルトの層設定を作成
+            if (!txtLayerConfigs[filename]) {
+                const lineCount = detectTxtLineCount(content);
+                txtLayerConfigs[filename] = getDefaultLayerConfig(lineCount);
+                console.log(`Auto-detected layer config for ${filename}:`, txtLayerConfigs[filename]);
+            }
+            
+            // 層設定に基づいてパース
+            const layerConfig = txtLayerConfigs[filename];
+            const result = parseGlossedText(content, layerConfig);
+            
+            if (result.length > 0) {
+                const baseName = filename.replace(/\.txt$/i, '');
+                for (const item of result) {
+                    item._base_name = baseName;
+                    item._source_file = filename;
+                    corpusData.push(item);
+                }
+                loadedFiles.push({ name: filename, count: result.length, baseName, type: 'txt' });
+                console.log(`Loaded TXT: ${filename} (${result.length} sentences)`);
+                if (result.length > 0) {
+                    console.log('Sample:', result[0]);
+                }
+            } else {
+                alert(`テキストファイルに文が見つかりません: ${filename}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`テキストパースエラー: ${filename}\n${err.message}`);
+        }
+    } else {
+        alert(`未対応のファイル形式です: ${filename}\n.txt または .csv ファイルをアップロードしてください。`);
+    }
+    
+    updateUI();
+}
+
+function reloadWithTxtLayerConfig() {
+    // TXTファイルのみを再パース
+    // CSVデータは保持
+    const csvLoadedFiles = loadedFiles.filter(f => f.type === 'csv');
+    
+    // データをリセット
+    corpusData = [];
+    loadedFiles = [...csvLoadedFiles];
+    
+    console.log('Reloading TXT with layer configs:', JSON.stringify(txtLayerConfigs));
+    
+    // 保存したTXTデータを再パース
+    for (const { filename, content } of rawTXTData) {
+        const layerConfig = txtLayerConfigs[filename] || getDefaultLayerConfig(detectTxtLineCount(content));
+        const result = parseGlossedText(content, layerConfig);
+        const baseName = filename.replace(/\.txt$/i, '');
+        
+        console.log(`Re-parsed ${filename}: ${result.length} sentences with config:`, layerConfig);
+        
+        for (const item of result) {
+            item._base_name = baseName;
+            item._source_file = filename;
+            corpusData.push(item);
+        }
+        
+        loadedFiles.push({ name: filename, count: result.length, baseName, type: 'txt' });
+    }
+    
+    updateUI();
+    
+    // カウント表示を更新
+    for (const f of loadedFiles) {
+        if (f.type === 'txt') {
+            const countEl = document.getElementById(`txt-count-${f.name.replace(/[^a-zA-Z0-9]/g, '_')}`);
+            if (countEl) {
+                countEl.textContent = `${f.count}文`;
+                countEl.className = f.count > 0 ? 'tier-config-count' : 'tier-config-count zero';
+            }
+        }
+    }
+}
+
+function updateUI() {
+    // Update file tags
+    const filesEl = document.getElementById('loadedFiles');
+    filesEl.innerHTML = loadedFiles.map((f, i) => `
+        <span class="file-tag ${f.type === 'csv' ? 'csv-file' : ''}">
+            ${f.name}
+            <span class="count">${f.count}${f.type === 'csv' ? 'エントリ' : '文'}</span>
+            <span class="remove" onclick="removeFile(${i})">✕</span>
+        </span>
+    `).join('');
+    
+    // Update TXT layer config list
+    updateTxtLayerConfigList();
+    
+    // Update audio URL list
+    updateAudioUrlList();
+    
+    // Build dictionary
+    const hasCorpus = corpusData.length > 0;
+    const hasCSV = csvDictionaryData.length > 0;
+    
+    if (hasCorpus || hasCSV) {
+        // コーパスから辞書を構築
+        let builtDict = [];
+        if (hasCorpus) {
+            const builder = new DictionaryBuilder(3);
+            builtDict = builder.build(corpusData);
+        }
+        
+        // CSVのデータを統合
+        if (hasCSV) {
+            dictionaryData = mergeDictionaries(builtDict, csvDictionaryData);
+        } else {
+            dictionaryData = builtDict;
+        }
+        
+        const totalSentences = corpusData.length + csvDictionaryData.reduce((sum, e) => sum + (e.examples?.length || 0), 0);
+        
+        document.getElementById('statsBox').style.display = 'block';
+        document.getElementById('statFiles').textContent = loadedFiles.length;
+        document.getElementById('statSentences').textContent = totalSentences;
+        document.getElementById('statEntries').textContent = dictionaryData.length;
+        document.getElementById('btnGenerate').disabled = false;
+    } else {
+        document.getElementById('statsBox').style.display = 'none';
+        document.getElementById('btnGenerate').disabled = true;
+        dictionaryData = [];
+    }
+}
+
+function mergeDictionaries(dict1, dict2) {
+    const merged = new Map();
+    
+    // dict1を追加
+    for (const entry of dict1) {
+        const key = `${entry.morph}|${entry.pos}|${entry.gloss}`;
+        merged.set(key, { ...entry });
+    }
+    
+    // dict2を追加（既存エントリは用例をマージ）
+    for (const entry of dict2) {
+        const key = `${entry.morph}|${entry.pos}|${entry.gloss}`;
+        if (merged.has(key)) {
+            const existing = merged.get(key);
+            // phoneme/ipaを更新（dict2が優先、つまりCSVが優先）
+            if (entry.phoneme) existing.phoneme = entry.phoneme;
+            if (entry.ipa) existing.ipa = entry.ipa;
+            // 異形態をマージ
+            const allAllomorphs = new Set([...(existing.allomorphs || []), ...(entry.allomorphs || [])]);
+            existing.allomorphs = [...allAllomorphs].sort();
+            // 用例をマージ（重複を避けて最大3件）
+            const existingTexts = new Set((existing.examples || []).map(e => e.text));
+            for (const ex of (entry.examples || [])) {
+                if (!existingTexts.has(ex.text) && (existing.examples || []).length < 3) {
+                    existing.examples = existing.examples || [];
+                    existing.examples.push(ex);
+                }
+            }
+        } else {
+            merged.set(key, { ...entry });
+        }
+    }
+    
+    // ソートして返す
+    return [...merged.values()].sort((a, b) => 
+        a.morph.toLowerCase().localeCompare(b.morph.toLowerCase()) || 
+        (a.pos || '').localeCompare(b.pos || '')
+    );
+}
+
+function removeFile(index) {
+    const file = loadedFiles[index];
+    
+    if (file.type === 'csv') {
+        // CSVファイルの場合、該当するエントリを削除
+        csvDictionaryData = csvDictionaryData.filter(item => item._source_file !== file.name);
+    } else if (file.type === 'txt') {
+        corpusData = corpusData.filter(item => item._source_file !== file.name);
+        rawTXTData = rawTXTData.filter(item => item.filename !== file.name);
+        delete audioUrls[file.name];
+        delete txtLayerConfigs[file.name];
+    }
+    
+    loadedFiles.splice(index, 1);
+    
+    updateUI();
+}
+
+// ============================================================================
+// HTML Generation
+// ============================================================================
+
+function generateHTML() {
+    const langName = document.getElementById('langNameInput').value || '対象言語';
+    const title = document.getElementById('titleInput').value || (langName + '辞書');
+    const subtitle = document.getElementById('subtitleInput').value || '';
+    
+    // デバッグ: corpusDataの確認
+    console.log('=== Generate HTML Debug ===');
+    console.log('corpusData length:', corpusData.length);
+    if (corpusData.length > 0) {
+        console.log('Sample corpus item:', JSON.stringify(corpusData[0], null, 2));
+    }
+    console.log('dictionaryData length:', dictionaryData.length);
+    if (dictionaryData.length > 0) {
+        console.log('Sample dictionary entry:', JSON.stringify(dictionaryData[0], null, 2));
+    }
+    
+    // 辞書が空の場合は再構築を試みる
+    if (dictionaryData.length === 0 && corpusData.length > 0) {
+        console.log('Dictionary is empty, rebuilding...');
+        const builder = new DictionaryBuilder(3);
+        dictionaryData = builder.build(corpusData);
+        console.log('Rebuilt dictionary length:', dictionaryData.length);
+    }
+    
+    // 音声URLをexamplesに設定
+    console.log('audioUrls:', JSON.stringify(audioUrls));
+    let audioSetCount = 0;
+    
+    // 各ソースファイルごとの文インデックスマップを作成
+    const fileIndexMaps = {};
+    const fileSentenceIdMaps = {};
+    for (const item of corpusData) {
+        const sf = item._source_file;
+        if (!fileIndexMaps[sf]) fileIndexMaps[sf] = [];
+        if (!fileSentenceIdMaps[sf]) fileSentenceIdMaps[sf] = {};
+        fileIndexMaps[sf].push(item.text);
+        // _sentence_idがある場合（TXTファイル）は記録
+        if (item._sentence_id !== undefined) {
+            fileSentenceIdMaps[sf][item.text] = item._sentence_id;
+        }
+    }
+    
+    for (const entry of dictionaryData) {
+        for (const ex of (entry.examples || [])) {
+            if (ex.audio_file === undefined) {
+                // corpusDataから元のソースファイル名を見つける
+                const corpusItem = corpusData.find(c => c.text === ex.text);
+                if (corpusItem && corpusItem._source_file) {
+                    const urls = audioUrls[corpusItem._source_file];
+                    if (urls && urls.length > 0) {
+                        let urlIndex = -1;
+                        
+                        // _sentence_idがある場合はそれを使う（1始まり → 0始まりに変換）
+                        if (corpusItem._sentence_id !== undefined) {
+                            urlIndex = corpusItem._sentence_id - 1;
+                        } else {
+                            // なければ文のインデックスを使う
+                            urlIndex = fileIndexMaps[corpusItem._source_file].indexOf(ex.text);
+                        }
+                        
+                        if (urlIndex >= 0 && urlIndex < urls.length) {
+                            ex.audio_file = urls[urlIndex];
+                            ex.start_time = 0;  // ファイル全体を再生
+                            ex.end_time = 0;
+                            audioSetCount++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    console.log('Audio URLs set for', audioSetCount, 'examples');
+    
+    // 再確認：音声URLが設定されたexamplesの数
+    let hasAudioCount = 0;
+    for (const entry of dictionaryData) {
+        for (const ex of (entry.examples || [])) {
+            if (ex.audio_file) {
+                hasAudioCount++;
+            }
+        }
+    }
+    console.log('Examples with audio:', hasAudioCount);
+    
+    if (dictionaryData.length === 0) {
+        alert('辞書データが空です。\n\nデバッグ情報:\n- corpusData: ' + corpusData.length + '件\n- 最初の文のmorphs: ' + JSON.stringify(corpusData[0]?.morphs) + '\n- 最初の文のgloss: ' + JSON.stringify(corpusData[0]?.gloss));
+        return;
+    }
+    
+    const html = generateDictionaryHTML(langName, title, subtitle, dictionaryData);
+    
+    // Create download link
+    const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const downloadLink = document.getElementById('downloadLink');
+    downloadLink.href = url;
+    // ファイル名を言語名から生成（英数字以外は除去してケバブケースに）
+    const safeLangName = langName.replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '').toLowerCase() || 'dictionary';
+    downloadLink.download = safeLangName + '-dictionary.html';
+    
+    document.getElementById('outputSection').classList.add('show');
+    downloadLink.scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateDictionaryHTML(langName, title, subtitle, dictionary) {
+    // JSON内の危険な文字をエスケープ
+    const dictJSON = JSON.stringify(dictionary)
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/&/g, '\\u0026')
+        .replace(/'/g, '\\u0027');
+    
+    return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(title)}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: linear-gradient(135deg, #3949ab 0%, #1a237e 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 950px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 30px; text-align: center; }
+        header h1 { font-size: 28px; margin-bottom: 8px; }
+        header p { opacity: 0.8; font-size: 14px; }
+        .search-section { padding: 20px 30px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; }
+        .mode-toggle { display: flex; gap: 0; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 2px solid #3949ab; }
+        .mode-btn { flex: 1; padding: 10px 20px; border: none; background: white; cursor: pointer; font-size: 14px; font-weight: bold; color: #3949ab; transition: all 0.2s; }
+        .mode-btn:hover { background: #f0f0ff; }
+        .mode-btn.active { background: #3949ab; color: white; }
+        #searchInput { width: 100%; padding: 12px 16px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
+        #searchInput:focus { outline: none; border-color: #3949ab; }
+        .search-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
+        .search-options label { font-size: 12px; color: #6c757d; margin-right: 5px; }
+        .search-targets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .search-target { font-size: 11px; padding: 3px 8px; background: #e9ecef; border-radius: 3px; cursor: pointer; }
+        .search-target:hover { background: #dee2e6; }
+        .search-target.active { background: #28a745; color: white; }
+        .alphabet-nav { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .nav-block { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px; background: #f8f9fa; border-radius: 8px; align-items: center; }
+        .nav-block.latin { border-left: 4px solid #3949ab; }
+        .nav-block.kana { border-left: 4px solid #28a745; }
+        .nav-block-label { font-size: 11px; color: #6c757d; margin-right: 8px; font-weight: bold; white-space: nowrap; }
+        .alphabet-nav button { padding: 6px 10px; border: none; background: #e9ecef; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .alphabet-nav button:hover { background: #3949ab; color: white; }
+        .alphabet-nav button.active { background: #1a237e; color: white; }
+        .nav-block.kana button:hover { background: #28a745; color: white; }
+        .nav-block.kana button.active { background: #1b5e20; color: white; }
+        .filter-section { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filter-btn { padding: 6px 12px; border: none; background: #e9ecef; border-radius: 20px; cursor: pointer; font-size: 12px; }
+        .filter-btn:hover { background: #dee2e6; }
+        .filter-btn.active { background: #3949ab; color: white; }
+        .stats { padding: 10px 30px; background: #fff3cd; font-size: 13px; color: #856404; }
+        .dictionary-list { max-height: 60vh; overflow-y: auto; }
+        .entry { padding: 20px 30px; border-bottom: 1px solid #e9ecef; }
+        .entry:hover { background: #fafbfc; }
+        .entry-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+        .morph { font-size: 26px; font-weight: bold; color: #1a1a2e; }
+        .morph-index { font-size: 14px; color: #6c757d; vertical-align: super; }
+        .phoneme { font-size: 18px; color: #6c757d; margin-left: 8px; }
+        .ipa { font-size: 18px; color: #3949ab; font-family: 'Doulos SIL', 'Charis SIL', 'Gentium Plus', 'Noto Sans', sans-serif; margin-left: 8px; line-height: 1.6; }
+        .pos-badge { padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .gloss-main { font-size: 18px; color: #2d3436; }
+        .entry-header.reverse .gloss-main { font-size: 24px; font-weight: bold; color: #1a1a2e; order: -1; }
+        .entry-header.reverse .morph { font-size: 20px; color: #3949ab; }
+        .allomorphs { font-size: 13px; color: #6c757d; margin: 8px 0; padding: 6px 10px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #856404; }
+        .allomorphs::before { content: "異形態: "; font-weight: bold; color: #856404; }
+        .allomorph-item { display: inline-block; background: #e9ecef; padding: 2px 8px; border-radius: 3px; margin: 2px 3px 2px 0; font-family: monospace; font-size: 14px; }
+        .allomorph-link { cursor: pointer; background: #d4edda; border: 1px solid #28a745; color: #155724; }
+        .allomorph-link:hover { background: #c3e6cb; }
+        .examples-section { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #dee2e6; }
+        .examples-title { font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 8px; }
+        .example { margin-bottom: 12px; padding: 10px; background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%); border-radius: 8px; font-size: 13px; }
+        .example-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .play-btn { width: 32px; height: 32px; border: none; border-radius: 50%; background: linear-gradient(135deg, #3949ab 0%, #1a237e 100%); color: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+        .play-btn:hover { transform: scale(1.1); box-shadow: 0 3px 10px rgba(102,126,234,0.4); }
+        .play-btn.playing { background: #e74c3c; }
+        .speaker-tag { font-size: 12px; font-weight: bold; color: #6c757d; background: #e9ecef; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+        .example-text { font-size: 14px; color: #1a1a2e; line-height: 1.5; font-weight: 500; flex: 1; }
+        .example-trans { font-size: 13px; color: #2d3436; margin-bottom: 8px; padding: 6px 10px; background: #fff; border-radius: 4px; border-left: 3px solid #3949ab; }
+        .example-trans::before { content: "訳: "; font-weight: bold; color: #3949ab; }
+        .interlinear { display: flex; flex-wrap: wrap; gap: 2px; font-family: 'Consolas', 'Monaco', monospace; padding-top: 8px; border-top: 1px solid #dee2e6; }
+        .gloss-unit { display: flex; flex-direction: column; align-items: center; padding: 3px 5px; margin-right: 4px; border-radius: 3px; background: #fff; }
+        .gloss-unit.target { background: #fff3cd; border: 2px solid #ffc107; }
+        .gloss-unit .morph-text { font-size: 13px; color: #1a1a2e; font-weight: 500; }
+        .gloss-unit .gloss-text { font-size: 10px; color: #6c757d; }
+        .gloss-unit.target .morph-text { color: #856404; font-weight: bold; }
+        .gloss-unit.target .gloss-text { color: #856404; }
+        .pos-V { background: #cce5ff; color: #004085; } .pos-N { background: #d4edda; color: #155724; } .pos-AUX { background: #fff3cd; color: #856404; } .pos-ADJ { background: #f8d7da; color: #721c24; } .pos-ADV { background: #e2d5f1; color: #5a2d82; } .pos-PRN { background: #d1ecf1; color: #0c5460; } .pos-CONJ { background: #d4edda; color: #155724; } .pos-CP { background: #ffeaa7; color: #856404; } .pos-ISP { background: #dfe6e9; color: #2d3436; } .pos-SFP { background: #fab1a0; color: #6c3d00; } .pos-INTJ { background: #fd79a8; color: #6c1e3d; } .pos-VAFX { background: #74b9ff; color: #003366; } .pos-NAFX { background: #a29bfe; color: #2d1f5c; } .pos-FN { background: #81ecec; color: #006266; } .pos-PN { background: #ffeaa7; color: #6c5000; } .pos-NUM { background: #fdcb6e; color: #5a4000; } .pos-CJP { background: #00cec9; color: #006266; } .pos-LP { background: #a8e6cf; color: #1b5e20; } .pos-CLF { background: #b2bec3; color: #2d3436; } .pos-default { background: #e9ecef; color: #495057; }
+        .no-results { padding: 40px; text-align: center; color: #6c757d; }
+        footer { padding: 15px 30px; background: #f8f9fa; text-align: center; font-size: 12px; color: #6c757d; }
+        .highlight { background: #fff3cd; padding: 0 2px; border-radius: 2px; }
+        .csv-btn { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 10px; }
+        .csv-btn:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏝️ ${escapeHtml(title)}</h1>
+            ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}
+        </header>
+        <div class="search-section">
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="modeNormal">見出し順（${escapeHtml(langName)}→意味）</button>
+                <button class="mode-btn" id="modeReverse">逆引き（意味→${escapeHtml(langName)}）</button>
+            </div>
+            <input type="text" id="searchInput" placeholder="🔍 入力するとリアルタイムで絞り込み...">
+            <div class="search-options">
+                <div class="search-targets">
+                    <label>検索対象:</label>
+                    <span class="search-target active" data-target="morph">形態素</span>
+                    <span class="search-target active" data-target="gloss">意味</span>
+                    <span class="search-target active" data-target="pos">品詞</span>
+                    <span class="search-target active" data-target="trans">和訳</span>
+                    <span class="search-target active" data-target="allo">異形態</span>
+                </div>
+            </div>
+            <div class="alphabet-nav" id="alphabetNav"></div>
+            <div class="filter-section" id="posFilters"></div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="dictionary-list" id="dictionaryList"></div>
+        <footer>${escapeHtml(title)} | 総見出し語数: <span id="totalCount">0</span>語 | 🔊 例文をクリックで音声再生 <button class="csv-btn" onclick="downloadCSV()">📥 CSVダウンロード</button></footer>
+        <audio id="mainAudio" style="display:none;"></audio>
+    </div>
+<script>
+const dictionaryData = ${dictJSON};
+let currentFilter = null, currentLetter = null, currentNavType = null, searchQuery = '', reverseMode = false;
+let searchMode = 'prefix';
+let searchTargets = { morph: true, gloss: true, pos: true, trans: true, allo: true };
+let currentlyPlaying = null;
+
+// 音声を再生
+async function playAudio(url, startTime, endTime, btn) {
+    const audio = document.getElementById('mainAudio');
+    
+    // LaTeXスタイルのUTFエスケープを変換
+    // 例: \UTF{0268} → ɨ
+    url = url.replace(/\\UTF\{([0-9A-Fa-f]+)\}/g, (match, hex) => {
+        return String.fromCodePoint(parseInt(hex, 16));
+    });
+    
+    // 既に再生中の場合は停止
+    if (currentlyPlaying && currentlyPlaying.button === btn && !audio.paused) {
+        audio.pause();
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        currentlyPlaying = null;
+        return;
+    }
+    
+    // 前の再生を停止
+    if (currentlyPlaying) {
+        audio.pause();
+        if (currentlyPlaying.button) {
+            currentlyPlaying.button.classList.remove('playing');
+            currentlyPlaying.button.textContent = '▶';
+        }
+    }
+    
+    btn.classList.add('playing');
+    btn.textContent = '⏳';
+    
+    // ファイル全体を再生するか、範囲再生するかを判定
+    const playFullFile = (!startTime && !endTime) || (startTime === 0 && endTime === 0);
+    
+    // 再生終了チェック（範囲再生の場合のみ）
+    const checkEnd = () => {
+        if (!playFullFile && audio.currentTime >= endTime) {
+            audio.pause();
+            btn.classList.remove('playing');
+            btn.textContent = '▶';
+            currentlyPlaying = null;
+        } else if (currentlyPlaying && currentlyPlaying.button === btn && !audio.paused) {
+            requestAnimationFrame(checkEnd);
+        }
+    };
+    
+    // 再生終了イベント（ファイル全体再生の場合）
+    const onEnded = () => {
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        currentlyPlaying = null;
+        audio.removeEventListener('ended', onEnded);
+    };
+    
+    // 再生開始
+    const startPlay = async (finalUrl) => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = finalUrl;
+        
+        if (playFullFile) {
+            audio.addEventListener('ended', onEnded);
+        }
+        
+        try {
+            await audio.play();
+            if (!playFullFile) {
+                audio.currentTime = startTime;
+                requestAnimationFrame(checkEnd);
+            }
+            btn.textContent = '⏹';
+            currentlyPlaying = { button: btn, endTime };
+            return true;
+        } catch (error) {
+            console.log('Play failed:', error.name, error.message);
+            audio.removeEventListener('ended', onEnded);
+            return false;
+        }
+    };
+    
+    // 直接URLで試す
+    if (await startPlay(url)) return;
+    
+    // CORSプロキシを試す
+    console.log('Trying CORS proxy...');
+    if (await startPlay('https://corsproxy.io/?' + encodeURIComponent(url))) return;
+    
+    // 別のプロキシを試す
+    console.log('Trying alternative proxy...');
+    if (await startPlay('https://api.allorigins.win/raw?url=' + encodeURIComponent(url))) return;
+    
+    // 全て失敗
+    console.log('All attempts failed');
+    btn.classList.remove('playing');
+    btn.textContent = '❌';
+}
+
+// ページ読み込み後にプリロード開始
+// 音声プリロードは削除（シンプルなアプローチに変更）
+
+const glossReading = {'上がる':'あがる','間':'あいだ','家':'いえ','行く':'いく','海':'うみ','お母さん':'おかあさん','落ちる':'おちる','沖縄':'おきなわ','顔':'かお','帰る':'かえる','買う':'かう','神':'かみ','髪':'かみ','来る':'くる','魚':'さかな','死ぬ':'しぬ','手':'て','時':'とき','友達':'ともだち','人':'ひと','船':'ふね','昔':'むかし','水':'みず','物':'もの','焼く':'やく','豆腐':'とうふ','食べる':'たべる','大きい':'おおきい','貧しい':'まずしい','豊かな':'ゆたかな'};
+const gojuonRows = [{label:'あ',chars:'あいうえおアイウエオ'},{label:'か',chars:'かきくけこがぎぐげごカキクケコガギグゲゴ'},{label:'さ',chars:'さしすせそざじずぜぞサシスセソザジズゼゾ'},{label:'た',chars:'たちつてとだぢづでどタチツテトダヂヅデド'},{label:'な',chars:'なにぬねのナニヌネノ'},{label:'は',chars:'はひふへほばびぶべぼぱぴぷぺぽハヒフヘホバビブベボパピプペポ'},{label:'ま',chars:'まみむめもマミムメモ'},{label:'や',chars:'やゆよヤユヨ'},{label:'ら',chars:'らりるれろラリルレロ'},{label:'わ',chars:'わをんワヲン'},{label:'他',chars:''}];
+
+function getGojuonRow(str) { if (!str) return '他'; const r = glossReading[str], f = r ? r.charAt(0) : str.charAt(0); for (const row of gojuonRows) if (row.chars.includes(f)) return row.label; return '他'; }
+function getGojuonSortKey(str) { if (!str) return 'ん999'; if (glossReading[str]) return glossReading[str]; const first = str.charAt(0); if ((first >= 'ぁ' && first <= 'ん') || (first >= 'ァ' && first <= 'ン')) return str; return 'ん999' + str; }
+function getPosClass(pos) { const known = ['V','N','AUX','ADJ','ADV','PRN','CONJ','CP','ISP','SFP','INTJ','VAFX','NAFX','FN','PN','NUM','CLF','CJP','LP']; return known.includes(pos) ? 'pos-'+pos : 'pos-default'; }
+function highlightText(text, q) { 
+    if (!q || !text) return text || ''; 
+    try { 
+        const lower = text.toLowerCase();
+        const qLower = q.toLowerCase();
+        const idx = lower.indexOf(qLower);
+        if (idx === -1) return text;
+        return text.substring(0, idx) + '<span class="highlight">' + text.substring(idx, idx + q.length) + '</span>' + text.substring(idx + q.length);
+    } catch(e) { return text; } 
+}
+
+function renderExample(ex) {
+    const { morphs = [], glosses = [], trans, target_index, audio_file, start_time, end_time, speaker } = ex;
+    const safeAudioFile = audio_file ? audio_file.replace(/'/g, "\\\\'") : '';
+    let playBtn = audio_file ? \`<button class="play-btn" onclick="playAudio('\${safeAudioFile}', \${start_time || 0}, \${end_time || 0}, this)">▶</button>\` : '';
+    const speakerHtml = speaker ? \`<span class="speaker-tag">[\${speaker}]</span>\` : '';
+    const transHtml = trans ? \`<div class="example-trans">\${trans}</div>\` : '';
+    let interlinear = '';
+    for (let i = 0; i < morphs.length && i < glosses.length; i++) {
+        const m = morphs[i], g = glosses[i]; if (!m || m === 'XXX') continue;
+        interlinear += \`<div class="gloss-unit \${i === target_index ? 'target' : ''}"><span class="morph-text">\${m}</span><span class="gloss-text">\${g}</span></div>\`;
+    }
+    return \`<div class="example"><div class="example-header">\${playBtn}\${speakerHtml}<div class="example-text">\${ex.text}</div></div><div class="interlinear">\${interlinear}</div>\${transHtml}</div>\`;
+}
+
+// 検索用：境界記号を除去（headwordSetより前に定義）
+function stripBoundary(text) {
+    if (!text) return '';
+    return text.replace(/^[=~+\\-.']+/, '');
+}
+
+// phonemeからスラッシュを除去（/aanuku/ → aanuku）
+function stripPhonemeSlash(phoneme) {
+    if (!phoneme) return '';
+    return phoneme.replace(/^\\/+/, '').replace(/\\/+$/, '');
+}
+
+// 文字がラテン文字かどうかを判定
+function isLatin(char) {
+    return /[a-zA-Z]/.test(char);
+}
+
+// 文字が仮名かどうかを判定
+function isKana(char) {
+    return /[ぁ-んァ-ン]/.test(char);
+}
+
+// ソートキーを取得（phonemeがあればphoneme、なければmorph）
+function getSortKey(item) {
+    const phoneme = stripPhonemeSlash(item.phoneme);
+    return (phoneme || stripBoundary(item.morph)).toLowerCase();
+}
+
+// ナビゲーション用のキーを取得（ラテン文字は先頭文字、仮名は五十音行）
+function getNavKey(item) {
+    const sortKey = getSortKey(item);
+    const firstChar = sortKey.charAt(0);
+    if (isLatin(firstChar)) {
+        return { type: 'latin', key: firstChar.toLowerCase() };
+    } else if (isKana(firstChar)) {
+        return { type: 'kana', key: getGojuonRow(sortKey) };
+    } else {
+        return { type: 'other', key: firstChar.toLowerCase() };
+    }
+}
+
+// ソート用の比較キーを取得
+function getCompareSortKey(item) {
+    const sortKey = getSortKey(item);
+    const firstChar = sortKey.charAt(0);
+    if (isKana(firstChar)) {
+        // 仮名は五十音順でソート（ラテン文字より後に配置）
+        return 'zzz' + getGojuonSortKey(sortKey);
+    }
+    return sortKey;
+}
+
+// 境界記号を保持しつつ正規化（シングルクォート、ピリオド、カンマを除去）
+function normalizeMorph(text) {
+    if (!text) return '';
+    return text.replace(/^'+/, '').replace(/[.,]/g, '').toLowerCase();
+}
+
+// 見出し語セットを構築（異形態リンク用）- 境界記号を保持
+const headwordSet = new Set(dictionaryData.map(d => normalizeMorph(d.morph)));
+
+// 異形態を検索してジャンプ
+function searchAllomorph(morph) {
+    const input = document.getElementById('searchInput');
+    // 境界記号を除去して検索
+    const searchTerm = stripBoundary(morph);
+    input.value = searchTerm;
+    searchQuery = searchTerm;
+    // 形態素のみ検索対象に
+    searchTargets = { morph: true, gloss: false, pos: false, trans: false, allo: false };
+    document.querySelectorAll('.search-target').forEach(t => {
+        t.classList.toggle('active', t.dataset.target === 'morph');
+    });
+    render();
+    // 最初の結果にスクロール
+    const firstEntry = document.querySelector('.entry');
+    if (firstEntry) firstEntry.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// 異形態のHTML生成（見出し語として存在すればリンク化）- 境界記号を区別
+function renderAllomorph(allo) {
+    const normalized = normalizeMorph(allo);
+    if (headwordSet.has(normalized)) {
+        return \`<span class="allomorph-item allomorph-link" onclick="searchAllomorph('\${allo.replace(/'/g, "\\\\'")}')">🔗 \${allo}</span>\`;
+    }
+    return \`<span class="allomorph-item">\${allo}</span>\`;
+}
+
+function renderEntry(item, q) {
+    const posClass = getPosClass(item.pos), indexHtml = item.morph_index ? \`<span class="morph-index">\${item.morph_index}</span>\` : '';
+    const headerClass = reverseMode ? 'entry-header reverse' : 'entry-header';
+    const glossDisplay = reverseMode && item.glosses_all?.length > 1 ? item.glosses_all.join('、') : item.gloss;
+    let allomorphsHtml = item.allomorphs?.length ? \`<div class="allomorphs">\${item.allomorphs.map(a => renderAllomorph(a)).join('')}</div>\` : '';
+    // phoneme/ipa表示
+    let phonemeHtml = '';
+    if (item.phoneme) phonemeHtml += \`<span class="phoneme">\${item.phoneme}</span>\`;
+    if (item.ipa) phonemeHtml += \`<span class="ipa">[\${item.ipa}]</span>\`;
+    let examplesHtml = '';
+    if (item.examples?.length) {
+        const tc = item.examples.filter(e => e.trans).length, ac = item.examples.filter(e => e.audio_file).length;
+        examplesHtml = \`<div class="examples-section"><div class="examples-title">📖 用例 \${item.examples.length}件\${tc ? \`（和訳\${tc}件）\` : ''}\${ac ? \` 🔊\${ac}件\` : ''}</div>\${item.examples.map(renderExample).join('')}</div>\`;
+    }
+    return \`<div class="entry"><div class="\${headerClass}"><span class="morph">\${highlightText(item.morph, q)}\${indexHtml}</span>\${phonemeHtml}<span class="pos-badge \${posClass}">\${item.pos || '?'}</span><span class="gloss-main">\${highlightText(glossDisplay, q)}</span></div>\${allomorphsHtml}\${examplesHtml}</div>\`;
+}
+
+function getSortedData() {
+    if (reverseMode) {
+        const groups = new Map();
+        for (const item of dictionaryData) {
+            if (!groups.has(item.morph)) groups.set(item.morph, { morph: item.morph, phoneme: item.phoneme || '', ipa: item.ipa || '', glosses: [], pos: item.pos, allomorphs: new Set(), examples: [] });
+            const g = groups.get(item.morph), base = item.gloss?.split('.')[0] || '';
+            if (base && !g.glosses.includes(base)) g.glosses.push(base);
+            // phonemeとipaは最初に見つかったものを保持
+            if (!g.phoneme && item.phoneme) g.phoneme = item.phoneme;
+            if (!g.ipa && item.ipa) g.ipa = item.ipa;
+            (item.allomorphs || []).forEach(a => g.allomorphs.add(a));
+            (item.examples || []).forEach(ex => { if (g.examples.length < 3 && !g.examples.some(e => e.text === ex.text)) g.examples.push(ex); });
+        }
+        return [...groups.values()].map(g => ({ morph: g.morph, phoneme: g.phoneme, ipa: g.ipa, gloss: g.glosses.sort((a, b) => getGojuonSortKey(a).localeCompare(getGojuonSortKey(b), 'ja'))[0] || '', glosses_all: g.glosses, pos: g.pos, allomorphs: [...g.allomorphs].sort(), examples: g.examples, morph_index: null })).sort((a, b) => getGojuonSortKey(a.gloss).localeCompare(getGojuonSortKey(b.gloss), 'ja'));
+    }
+    return [...dictionaryData].sort((a, b) => getCompareSortKey(a).localeCompare(getCompareSortKey(b), 'ja') || (a.pos || '').localeCompare(b.pos || ''));
+}
+
+function matchSearch(text, query, mode) {
+    if (!text || !query) return false;
+    const t = text.toLowerCase();
+    const q = query.toLowerCase();
+    switch(mode) {
+        case 'exact': return t === q;
+        case 'prefix': return t.startsWith(q);
+        case 'suffix': return t.endsWith(q);
+        default: return t.includes(q);
+    }
+}
+
+// 形態素検索用：境界記号を除去して検索
+function matchMorphSearch(text, query, mode) {
+    if (!text || !query) return false;
+    const t = stripBoundary(text).toLowerCase();
+    const q = query.toLowerCase();
+    switch(mode) {
+        case 'exact': return t === q;
+        case 'prefix': return t.startsWith(q);
+        case 'suffix': return t.endsWith(q);
+        default: return t.includes(q);
+    }
+}
+
+function filterData() {
+    return getSortedData().filter(item => {
+        if (currentLetter) { 
+            if (reverseMode) {
+                // 逆引き：glossの先頭仮名で判定
+                const reading = glossReading[item.gloss] || item.gloss;
+                if (reading) {
+                    const firstChar = toHiragana(reading.charAt(0));
+                    if (firstChar !== currentLetter) return false;
+                } else {
+                    return false;
+                }
+            } else {
+                const morphFirst = stripBoundary(item.morph).charAt(0);
+                
+                if (currentNavType === 'latin') {
+                    // アルファベットナビ：morphがラテン文字ならmorph、仮名ならphonemeで判定
+                    if (isLatin(morphFirst)) {
+                        if (morphFirst.toLowerCase() !== currentLetter.toLowerCase()) return false;
+                    } else {
+                        const phoneme = stripPhonemeSlash(item.phoneme);
+                        if (!phoneme || phoneme.charAt(0).toLowerCase() !== currentLetter.toLowerCase()) return false;
+                    }
+                } else if (currentNavType === 'kana') {
+                    // 仮名ナビ：morphの先頭仮名で判定（個別文字）
+                    if (!isKana(morphFirst)) return false;
+                    if (toHiragana(morphFirst) !== currentLetter) return false;
+                }
+            } 
+        }
+        if (currentFilter && item.pos !== currentFilter) return false;
+        if (searchQuery) {
+            let match = false;
+            // morphまたはphonemeで検索
+            if (searchTargets.morph) {
+                if (matchMorphSearch(item.morph, searchQuery, searchMode)) match = true;
+                // phonemeでも検索（スラッシュ除去）
+                if (!match && item.phoneme) {
+                    const phoneme = stripPhonemeSlash(item.phoneme);
+                    if (matchSearch(phoneme, searchQuery, searchMode)) match = true;
+                }
+            }
+            if (!match && searchTargets.gloss) {
+                if (reverseMode && item.glosses_all) {
+                    if (item.glosses_all.some(g => matchSearch(g, searchQuery, searchMode))) match = true;
+                } else if (matchSearch(item.gloss, searchQuery, searchMode)) match = true;
+            }
+            if (!match && searchTargets.pos && matchSearch(item.pos, searchQuery, searchMode)) match = true;
+            if (!match && searchTargets.allo && item.allomorphs?.some(a => matchMorphSearch(a, searchQuery, searchMode))) match = true;
+            if (!match && searchTargets.trans && item.examples?.some(ex => matchSearch(ex.trans, searchQuery, searchMode))) match = true;
+            if (!match) return false;
+        }
+        return true;
+    });
+}
+
+function render() {
+    const list = document.getElementById('dictionaryList'), stats = document.getElementById('stats');
+    const filtered = filterData();
+    list.innerHTML = filtered.length === 0 ? '<div class="no-results">該当する語が見つかりません</div>' : filtered.map(item => renderEntry(item, searchQuery)).join('');
+    const exCount = filtered.reduce((s, i) => s + (i.examples?.length || 0), 0), transCount = filtered.reduce((s, i) => s + (i.examples?.filter(e => e.trans).length || 0), 0), audioCount = filtered.reduce((s, i) => s + (i.examples?.filter(e => e.audio_file).length || 0), 0);
+    stats.textContent = \`\${reverseMode ? '【逆引き】' : '【見出し順】'} 表示: \${filtered.length}語（用例: \${exCount}件、和訳: \${transCount}件、音声: \${audioCount}件）\`;
+}
+
+function initAlphabetNav() {
+    const nav = document.getElementById('alphabetNav'); nav.innerHTML = '';
+    
+    // 「全て」ボタン用のブロック
+    const allBlock = document.createElement('div');
+    allBlock.className = 'nav-block';
+    allBlock.style.cssText = 'background: transparent; padding: 0;';
+    const allBtn = document.createElement('button'); allBtn.textContent = '全て'; allBtn.className = 'active';
+    allBtn.onclick = () => { currentLetter = null; currentNavType = null; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); allBtn.classList.add('active'); render(); };
+    allBlock.appendChild(allBtn);
+    nav.appendChild(allBlock);
+    
+    if (reverseMode) {
+        // 逆引きモード：glossの先頭仮名で個別にナビ
+        const usedKana = new Set();
+        for (const d of dictionaryData) {
+            const reading = glossReading[d.gloss] || d.gloss;
+            if (reading) {
+                const firstChar = reading.charAt(0);
+                if (isKana(firstChar)) {
+                    usedKana.add(toHiragana(firstChar));
+                }
+            }
+        }
+        
+        if (usedKana.size > 0) {
+            const kanaBlock = document.createElement('div');
+            kanaBlock.className = 'nav-block kana';
+            const kanaLabel = document.createElement('div');
+            kanaLabel.className = 'nav-block-label';
+            kanaLabel.textContent = '📝 意味（五十音）';
+            kanaBlock.appendChild(kanaLabel);
+            
+            const kanaOrder = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+            [...usedKana].sort((a, b) => kanaOrder.indexOf(a) - kanaOrder.indexOf(b)).forEach(kana => {
+                const btn = document.createElement('button');
+                btn.textContent = kana;
+                btn.onclick = () => { currentLetter = kana; currentNavType = 'kana'; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); };
+                kanaBlock.appendChild(btn);
+            });
+            nav.appendChild(kanaBlock);
+        }
+    } else {
+        // 見出し順モード
+        const latinLetters = new Set();  // phonemeベースのアルファベット
+        const morphLatinLetters = new Set();  // morphがアルファベットの場合
+        const kanaChars = new Set();  // morphが仮名の場合（個別文字）
+        
+        for (const d of dictionaryData) {
+            const morphFirst = stripBoundary(d.morph).charAt(0);
+            
+            if (isLatin(morphFirst)) {
+                morphLatinLetters.add(morphFirst.toLowerCase());
+            } else if (isKana(morphFirst)) {
+                kanaChars.add(toHiragana(morphFirst));
+                const phoneme = stripPhonemeSlash(d.phoneme);
+                if (phoneme && isLatin(phoneme.charAt(0))) {
+                    latinLetters.add(phoneme.charAt(0).toLowerCase());
+                }
+            }
+        }
+        
+        const allLatinLetters = new Set([...latinLetters, ...morphLatinLetters]);
+        
+        // アルファベットブロック
+        if (allLatinLetters.size > 0) {
+            const latinBlock = document.createElement('div');
+            latinBlock.className = 'nav-block latin';
+            const latinLabel = document.createElement('div');
+            latinLabel.className = 'nav-block-label';
+            latinLabel.textContent = '🔤 アルファベット（A-Z）';
+            latinBlock.appendChild(latinLabel);
+            
+            [...allLatinLetters].sort().forEach(letter => {
+                const btn = document.createElement('button');
+                btn.textContent = letter.toUpperCase();
+                btn.onclick = () => { currentLetter = letter; currentNavType = 'latin'; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); };
+                latinBlock.appendChild(btn);
+            });
+            nav.appendChild(latinBlock);
+        }
+        
+        // 仮名ブロック
+        if (kanaChars.size > 0) {
+            const kanaBlock = document.createElement('div');
+            kanaBlock.className = 'nav-block kana';
+            const kanaLabel = document.createElement('div');
+            kanaLabel.className = 'nav-block-label';
+            kanaLabel.textContent = '📝 見出し語（五十音）';
+            kanaBlock.appendChild(kanaLabel);
+            
+            const kanaOrder = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+            [...kanaChars].sort((a, b) => kanaOrder.indexOf(a) - kanaOrder.indexOf(b)).forEach(kana => {
+                const btn = document.createElement('button');
+                btn.textContent = kana;
+                btn.onclick = () => { currentLetter = kana; currentNavType = 'kana'; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); };
+                kanaBlock.appendChild(btn);
+            });
+            nav.appendChild(kanaBlock);
+        }
+    }
+}
+
+// カタカナをひらがなに変換
+function toHiragana(char) {
+    const code = char.charCodeAt(0);
+    if (code >= 0x30A1 && code <= 0x30F6) {
+        return String.fromCharCode(code - 0x60);
+    }
+    return char;
+}
+
+function initPosFilters() {
+    const allPos = new Set(dictionaryData.map(d => d.pos).filter(Boolean)), filters = document.getElementById('posFilters'); filters.innerHTML = '';
+    const allBtn = document.createElement('button'); allBtn.className = 'filter-btn active'; allBtn.textContent = '全品詞';
+    allBtn.onclick = () => { currentFilter = null; filters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); allBtn.classList.add('active'); render(); };
+    filters.appendChild(allBtn);
+    ['V','N','ADJ','ADV','AUX','PRN','CP','ISP','SFP','INTJ','CONJ','VAFX','NAFX','FN','PN','CJP','LP'].forEach(pos => { if (allPos.has(pos)) { const btn = document.createElement('button'); btn.className = 'filter-btn'; btn.textContent = pos; btn.onclick = () => { currentFilter = pos; filters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); }; filters.appendChild(btn); } });
+}
+
+document.getElementById('modeNormal').onclick = () => { reverseMode = false; document.getElementById('modeNormal').classList.add('active'); document.getElementById('modeReverse').classList.remove('active'); currentLetter = null; currentNavType = null; initAlphabetNav(); render(); };
+document.getElementById('modeReverse').onclick = () => { reverseMode = true; document.getElementById('modeReverse').classList.add('active'); document.getElementById('modeNormal').classList.remove('active'); currentLetter = null; currentNavType = null; initAlphabetNav(); render(); };
+document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value; render(); };
+
+// 検索対象切替
+document.querySelectorAll('.search-target').forEach(function(tgt) {
+    tgt.onclick = function() {
+        tgt.classList.toggle('active');
+        searchTargets[tgt.dataset.target] = tgt.classList.contains('active');
+        if (searchQuery) render();
+    };
+});
+
+document.getElementById('totalCount').textContent = dictionaryData.length;
+initAlphabetNav(); initPosFilters(); render();
+
+function downloadCSV() {
+    const escapeCSV = (str) => {
+        if (!str) return '';
+        str = String(str);
+        // Excelで数式として解釈される記号で始まる場合、先頭にシングルクォートを付ける
+        if (/^[=+\-@]/.test(str)) {
+            str = "'" + str;
+        }
+        if (str.includes(',') || str.includes('"') || str.includes('\\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    };
+    
+    // ヘッダー
+    const headers = ['morph', 'phoneme', 'ipa', 'pos', 'gloss', 'allomorphs', 'morph_index', 'ex_text', 'ex_trans', 'ex_morphs', 'ex_glosses', 'ex_audio', 'ex_start', 'ex_end', 'ex_target', 'ex_speaker'];
+    let csv = headers.join(',') + '\\n';
+    
+    for (const entry of dictionaryData) {
+        const base = [
+            escapeCSV(entry.morph),
+            escapeCSV(entry.phoneme || ''),
+            escapeCSV(entry.ipa || ''),
+            escapeCSV(entry.pos),
+            escapeCSV(entry.gloss),
+            escapeCSV((entry.allomorphs || []).join('|')),
+            escapeCSV(entry.morph_index || '')
+        ];
+        
+        if (entry.examples && entry.examples.length > 0) {
+            for (const ex of entry.examples) {
+                const row = [
+                    ...base,
+                    escapeCSV(ex.text),
+                    escapeCSV(ex.trans),
+                    escapeCSV((ex.morphs || []).join('|')),
+                    escapeCSV((ex.glosses || []).join('|')),
+                    escapeCSV(ex.audio_file),
+                    escapeCSV(ex.start_time),
+                    escapeCSV(ex.end_time),
+                    ex.target_index !== undefined ? String(ex.target_index) : '',
+                    escapeCSV(ex.speaker || '')
+                ];
+                csv += row.join(',') + '\\n';
+            }
+        } else {
+            csv += base.join(',') + ',,,,,,,,,' + '\\n';
+        }
+    }
+    
+    const bom = '\\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dictionary.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+<\/script>
+</body>
+</html>`;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================================================
+// Event Handlers
+// ============================================================================
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.onclick = () => fileInput.click();
+dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+};
+
+fileInput.onchange = (e) => handleFiles(e.target.files);
+
+function handleFiles(files) {
+    for (const file of files) {
+        const reader = new FileReader();
+        reader.onload = (e) => handleFile(file, e.target.result);
+        reader.readAsText(file);
+    }
+    fileInput.value = '';
+}
+
+document.getElementById('btnGenerate').onclick = generateHTML;
+document.getElementById('btnReloadTxt').onclick = reloadWithTxtLayerConfig;
+</script>
+</body>
+</html>
